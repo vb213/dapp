@@ -1,0 +1,119 @@
+<html>
+    <head>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.2.0/ethers.umd.min.js" type="application/javascript"></script>
+    </head>
+
+    <body>
+            <h2>The counter is at: <span id="counterValue"></span></h2>
+            <br>
+            <input type=button id="incrementBtn" value="Increment" onClick="incrementButtonClicked();">
+
+<script>
+const contractAbi = [ 
+{
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "by",
+          "type": "uint256"
+        }
+      ],
+      "name": "Increment",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "inc",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "by",
+          "type": "uint256"
+        }
+      ],
+      "name": "incBy",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "x",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+];
+
+var contractAddress = '0x5fbdb2315678afecb367f032d93f642f64180aa3';
+var signer;
+var contract;
+var contractWithSigner;
+
+connectMetaMask().then(function(provider) {
+    signer = provider.getSigner();
+    contract = new ethers.Contract(contractAddress, contractAbi, provider);
+    contractWithSigner = contract.connect(signer);
+    console.log(contractWithSigner);
+    estimateGas(contractWithSigner);
+    refreshCount();
+});
+
+async function connectMetaMask() {
+    var provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    return provider;
+}
+
+async function getCountFromContract(contract) {
+    console.log('Calling getCount...');
+    var result = await contract.x();
+    return result.toNumber();
+}
+
+async function incrementCount(contractWithSigner) {
+    console.log('Calling incrementCount...');
+    var result = await contractWithSigner.inc();
+    console.log('incrementCount RESULT: ');
+    console.log(result);
+    console.log('Waiting for transaction to be mined...');
+    await result.wait(); // Wait for the transaction to be mined
+    console.log('Mined.');
+}
+
+async function estimateGas(contractWithSigner) {
+    console.log('Estimating Gas...');
+    var estimatedGas = await contractWithSigner.estimateGas.inc();
+    console.log('ESTIMATED GAS RESULT:');
+    console.log(estimatedGas.toNumber());
+}
+
+function refreshCount() {
+    getCountFromContract(contractWithSigner).then(curCount => {
+            console.log('getCount RESULT: ' + curCount);
+            document.getElementById("counterValue").innerHTML = curCount;
+    });
+}
+
+async function incrementButtonClicked() {
+    await incrementCount(contractWithSigner);
+    refreshCount();
+}
+
+</script>
+
+    </body>
+</html>
