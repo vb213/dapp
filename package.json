@@ -1,0 +1,26 @@
+{
+  "name": "dex-nft-dapp",
+  "version": "1.0.0",
+  "description": "Project 3 - DEX-NFT Pawning Dapp (GROUP_20)",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.ts --network localhost",
+    "deploy:local": "hardhat run scripts/deploy.ts",
+    "setup": "bash setup.sh"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
+    "@types/node": "^22.0.0",
+    "hardhat": "^3.0.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.2.0"
+  }
+}
