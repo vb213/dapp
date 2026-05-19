@@ -1,9 +1,0 @@
-{
-  "git.openRepositoryInParentFolders": "never",
-  "git.autoRepositoryDetection": true,
-  "files.watcherExclude": {
-    "**/node_modules/**": true,
-    "**/cache/**": true,
-    "**/artifacts/**": true
-  }
-}

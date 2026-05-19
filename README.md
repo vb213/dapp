@@ -97,7 +97,9 @@ docs/          Project PDF
 ## Phase status
 
 - [x] **Phase 0** — Hardhat setup, DexToken deploy, tests
-- [ ] **Phase 1** — DEX loans (PawningHub)
+- [x] **Step 1** — NftCollection (mint / burn / tokenValue) + tests
+- [x] **Step 2** — PawningHub DEX loans (loanDex, makeDexPayment, terminateDexLoan, liquidate)
+- [ ] **Phase 1** — Frontend prêts DEX
 - [ ] **Phase 2** — NFT mint/marketplace
 - [ ] **Phase 3** — Auctions
 - [ ] **Phase 4** — NFT-backed loans with DEX backer

@@ -3,6 +3,12 @@
   "chainId": "31337",
   "deployer": "0x0000000000000000000000000000000000000000",
   "dexToken": "0x0000000000000000000000000000000000000000",
+  "nftCollection": "0x0000000000000000000000000000000000000000",
+  "pawningHub": "0x0000000000000000000000000000000000000000",
+  "paymentCycle": "60",
+  "interestPercent": "10",
+  "terminationFee": "1000000000000000",
+  "maxLoanDuration": "1800",
   "dexSwapRate": "1000000000",
   "deployedAt": "run: npm run deploy"
 }
