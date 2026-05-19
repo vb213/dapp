@@ -1,0 +1,9 @@
+{
+  "0": {
+    "tokenId": "0",
+    "name": "Example NFT",
+    "description": "Off-chain metadata only — not used for ownership or payments.",
+    "imageUrl": "https://via.placeholder.com/256",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}

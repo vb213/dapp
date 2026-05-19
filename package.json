@@ -12,7 +12,10 @@
     "node": "hardhat node",
     "deploy": "hardhat run scripts/deploy.ts --network localhost",
     "deploy:local": "hardhat run scripts/deploy.ts",
-    "setup": "bash setup.sh"
+    "setup": "bash setup.sh",
+    "server": "node server/index.js",
+    "copy-abis": "node scripts/copy-abis.js",
+    "frontend": "npx --yes serve frontend -p 8080"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
@@ -21,6 +24,7 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.2.0"
+    "@openzeppelin/contracts": "^5.2.0",
+    "express": "^4.22.2"
   }
 }

@@ -71,6 +71,10 @@ async function main() {
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(addresses, null, 2));
 
+  // Refresh frontend ABIs
+  const { execSync } = await import("node:child_process");
+  execSync("node scripts/copy-abis.js", { cwd: rootDir, stdio: "inherit" });
+
   console.log("\nDeployed contracts:");
   console.log("  DexToken:", dexAddress);
   console.log("  NftCollection:", nftAddress);
