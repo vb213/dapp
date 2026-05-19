@@ -99,7 +99,8 @@ docs/          Project PDF
 - [x] **Phase 0** — Hardhat setup, DexToken deploy, tests
 - [x] **Step 1** — NftCollection (mint / burn / tokenValue) + tests
 - [x] **Step 2** — PawningHub DEX loans (loanDex, makeDexPayment, terminateDexLoan, liquidate)
-- [ ] **Phase 1** — Frontend prêts DEX
+- [x] **Step 3** — Marketplace NFT + enchères (listFixed, buyFixed, listAuction, bid, finalizeAuction)
+- [ ] **Phase 1** — Frontend
 - [ ] **Phase 2** — NFT mint/marketplace
 - [ ] **Phase 3** — Auctions
 - [ ] **Phase 4** — NFT-backed loans with DEX backer
