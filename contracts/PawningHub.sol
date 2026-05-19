@@ -12,6 +12,10 @@ interface IDexToken is IERC20 {
     function dexSwapRate() external view returns (uint256);
 }
 
+interface IDexTokenAdmin {
+    function setDexSwapRate(uint256 _dexSwapRate) external;
+}
+
 interface INftCollection {
     function tokenValue(uint256 tokenId) external view returns (uint256);
 }
@@ -105,6 +109,14 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
     event NftLoanLiquidated(uint256 indexed loanId, address indexed borrower, address indexed backer);
     event NftLoanCancelled(uint256 indexed loanId);
 
+    event PaymentCycleUpdated(uint256 paymentCycle);
+    event InterestUpdated(uint256 interest);
+    event TerminationFeeUpdated(uint256 terminationFee);
+    event MaxLoanDurationUpdated(uint256 maxLoanDuration);
+    event DexSwapRateUpdated(uint256 dexSwapRate);
+    event EthWithdrawn(address indexed to, uint256 amount);
+    event DexWithdrawn(address indexed to, uint256 amount);
+
     constructor(
         address _dexToken,
         address _nftCollection,
@@ -122,6 +134,60 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         interest = _interest;
         terminationFee = _terminationFee;
         maxLoanDuration = _maxLoanDuration;
+    }
+
+    // -------------------------------------------------------------------------
+    // Administrator console (requirement 6)
+    // -------------------------------------------------------------------------
+
+    function setPaymentCycle(uint256 _paymentCycle) external onlyOwner {
+        require(_paymentCycle > 0, "Invalid cycle");
+        paymentCycle = _paymentCycle;
+        emit PaymentCycleUpdated(_paymentCycle);
+    }
+
+    function setInterest(uint256 _interest) external onlyOwner {
+        interest = _interest;
+        emit InterestUpdated(_interest);
+    }
+
+    function setTerminationFee(uint256 _terminationFee) external onlyOwner {
+        terminationFee = _terminationFee;
+        emit TerminationFeeUpdated(_terminationFee);
+    }
+
+    function setMaxLoanDuration(uint256 _maxLoanDuration) external onlyOwner {
+        require(_maxLoanDuration > 0, "Invalid duration");
+        maxLoanDuration = _maxLoanDuration;
+        emit MaxLoanDurationUpdated(_maxLoanDuration);
+    }
+
+    /// @notice Update DEX/ETH rate (hub must own DexToken — done in deploy script).
+    function setDexSwapRate(uint256 _dexSwapRate) external onlyOwner {
+        require(_dexSwapRate > 0, "Invalid rate");
+        IDexTokenAdmin(address(dexToken)).setDexSwapRate(_dexSwapRate);
+        emit DexSwapRateUpdated(_dexSwapRate);
+    }
+
+    function withdrawEth(address payable to, uint256 amount) external onlyOwner nonReentrant {
+        require(to != address(0), "Invalid recipient");
+        require(amount <= address(this).balance, "Insufficient ETH");
+        _sendEth(to, amount);
+        emit EthWithdrawn(to, amount);
+    }
+
+    function withdrawDex(address to, uint256 amount) external onlyOwner nonReentrant {
+        require(to != address(0), "Invalid recipient");
+        IERC20(address(dexToken)).safeTransfer(to, amount);
+        emit DexWithdrawn(to, amount);
+    }
+
+    function getEthBalance() external view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getDexBalance() external view returns (uint256) {
+        return IERC20(address(dexToken)).balanceOf(address(this));
     }
 
     /// @notice Borrow ETH using DEX as collateral (50% LTV).

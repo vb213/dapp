@@ -101,7 +101,9 @@ docs/          Project PDF
 - [x] **Step 2** — PawningHub DEX loans (loanDex, makeDexPayment, terminateDexLoan, liquidate)
 - [x] **Step 3** — Marketplace NFT + enchères (listFixed, buyFixed, listAuction, bid, finalizeAuction)
 - [x] **Step 4** — Prêts NFT + backer DEX (requestNftLoan, fundNftLoan, makeNftPayment, terminateNftLoan)
-- [ ] **Phase 1** — Frontend
+- [x] **Step 5** — Console admin (setters + withdraw ETH/DEX + setDexSwapRate)
+- [ ] **Step 6** — Serveur métadonnées NFT
+- [ ] **Step 8** — Frontend
 - [ ] **Phase 2** — NFT mint/marketplace
 - [ ] **Phase 3** — Auctions
 - [ ] **Phase 4** — NFT-backed loans with DEX backer

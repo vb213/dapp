@@ -39,6 +39,10 @@ async function main() {
   await pawningHub.waitForDeployment();
   const hubAddress = await pawningHub.getAddress();
 
+  // Hub admin also controls DEX swap rate (requirement 6)
+  await dexToken.transferOwnership(hubAddress);
+  console.log("DexToken ownership -> PawningHub");
+
   // Seed contracts with ETH (DEX sells + loan liquidity)
   for (const target of [dexAddress, hubAddress]) {
     const seedTx = await deployer.sendTransaction({
