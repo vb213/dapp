@@ -100,6 +100,7 @@ docs/          Project PDF
 - [x] **Step 1** — NftCollection (mint / burn / tokenValue) + tests
 - [x] **Step 2** — PawningHub DEX loans (loanDex, makeDexPayment, terminateDexLoan, liquidate)
 - [x] **Step 3** — Marketplace NFT + enchères (listFixed, buyFixed, listAuction, bid, finalizeAuction)
+- [x] **Step 4** — Prêts NFT + backer DEX (requestNftLoan, fundNftLoan, makeNftPayment, terminateNftLoan)
 - [ ] **Phase 1** — Frontend
 - [ ] **Phase 2** — NFT mint/marketplace
 - [ ] **Phase 3** — Auctions

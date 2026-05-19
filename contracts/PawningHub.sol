@@ -12,6 +12,10 @@ interface IDexToken is IERC20 {
     function dexSwapRate() external view returns (uint256);
 }
 
+interface INftCollection {
+    function tokenValue(uint256 tokenId) external view returns (uint256);
+}
+
 /// @title Orchestrates DEX loans, NFT marketplace and auctions (Project 3)
 contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
     using SafeERC20 for IERC20;
@@ -25,6 +29,7 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
     uint256 public maxLoanDuration;
 
     uint256 public loanCounter;
+    uint256 public nftLoanCounter;
     uint256 public listingCounter;
 
     enum SaleType {
@@ -65,6 +70,23 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
 
     mapping(uint256 => Listing) public listings;
 
+    struct NftLoan {
+        address borrower;
+        address backer;
+        uint256 tokenId;
+        uint256 dexBacking;
+        uint256 amount;
+        uint256 deadline;
+        uint256 totalInterest;
+        uint256 paymentsMade;
+        uint256 totalCycles;
+        uint256 nextPaymentDue;
+        bool funded;
+        bool active;
+    }
+
+    mapping(uint256 => NftLoan) public nftLoans;
+
     event DexLoanCreated(uint256 indexed loanId, address indexed borrower, uint256 amount, uint256 deadline);
     event DexLoanPayment(uint256 indexed loanId, uint256 paymentsMade);
     event DexLoanFinished(uint256 indexed loanId, address indexed borrower);
@@ -75,6 +97,13 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
     event NftSold(uint256 indexed listingId, address indexed buyer, uint256 price);
     event BidPlaced(uint256 indexed listingId, address indexed bidder, uint256 amount);
     event AuctionFinalized(uint256 indexed listingId, address indexed buyer, uint256 amount);
+
+    event NftLoanRequested(uint256 indexed loanId, address indexed borrower, uint256 tokenId, uint256 amount);
+    event NftLoanFunded(uint256 indexed loanId, address indexed backer, uint256 dexBacking);
+    event NftLoanPayment(uint256 indexed loanId, uint256 paymentsMade);
+    event NftLoanFinished(uint256 indexed loanId, address indexed borrower);
+    event NftLoanLiquidated(uint256 indexed loanId, address indexed borrower, address indexed backer);
+    event NftLoanCancelled(uint256 indexed loanId);
 
     constructor(
         address _dexToken,
@@ -327,6 +356,160 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         return listings[listingId];
     }
 
+    // -------------------------------------------------------------------------
+    // NFT-backed loans with DEX backer (requirement 5)
+    // -------------------------------------------------------------------------
+
+    /// @notice Request ETH loan using an NFT as collateral (waits for a DEX backer).
+    function requestNftLoan(uint256 tokenId, uint256 duration)
+        external
+        nonReentrant
+        returns (uint256 loanId)
+    {
+        require(duration <= maxLoanDuration, "Too long");
+        require(IERC721(nftCollection).ownerOf(tokenId) == msg.sender, "Not NFT owner");
+
+        uint256 nftValue = INftCollection(nftCollection).tokenValue(tokenId);
+        require(nftValue > 0, "Invalid NFT value");
+
+        uint256 cycles = duration / paymentCycle;
+        require(cycles > 0, "Invalid duration");
+
+        uint256 ethAmount = nftValue / 2;
+        require(ethAmount > 0, "Loan too small");
+
+        _escrowNft(tokenId);
+
+        nftLoanCounter++;
+        loanId = nftLoanCounter;
+
+        nftLoans[loanId] = NftLoan({
+            borrower: msg.sender,
+            backer: address(0),
+            tokenId: tokenId,
+            dexBacking: 0,
+            amount: ethAmount,
+            deadline: block.timestamp + duration,
+            totalInterest: (ethAmount * interest) / 100,
+            paymentsMade: 0,
+            totalCycles: cycles,
+            nextPaymentDue: 0,
+            funded: false,
+            active: false
+        });
+
+        emit NftLoanRequested(loanId, msg.sender, tokenId, ethAmount);
+    }
+
+    /// @notice Backer provides DEX; borrower receives ETH (50% NFT value).
+    function fundNftLoan(uint256 loanId) external nonReentrant {
+        NftLoan storage l = nftLoans[loanId];
+        require(l.borrower != address(0), "Invalid loan");
+        require(!l.funded, "Already funded");
+
+        uint256 swapRate = dexToken.dexSwapRate();
+        uint256 requiredDex = l.amount / swapRate;
+        require(requiredDex > 0, "Invalid DEX amount");
+
+        IERC20(address(dexToken)).safeTransferFrom(msg.sender, address(this), requiredDex);
+        require(address(this).balance >= l.amount, "No liquidity");
+
+        l.backer = msg.sender;
+        l.dexBacking = requiredDex;
+        l.funded = true;
+        l.active = true;
+        l.nextPaymentDue = block.timestamp + paymentCycle;
+
+        (bool success, ) = l.borrower.call{value: l.amount}("");
+        require(success, "ETH transfer failed");
+
+        emit NftLoanFunded(loanId, msg.sender, requiredDex);
+    }
+
+    /// @notice Pay interest cycle; 50% to backer, 50% retained by hub.
+    function makeNftPayment(uint256 loanId) external payable nonReentrant {
+        NftLoan storage l = nftLoans[loanId];
+        require(l.funded && l.active, "Inactive loan");
+        require(msg.sender == l.borrower, "Not borrower");
+        require(block.timestamp <= l.deadline, "Expired");
+
+        if (block.timestamp > l.nextPaymentDue) {
+            _liquidateNftLoan(loanId);
+            return;
+        }
+
+        uint256 cyclePayment = l.totalInterest / l.totalCycles;
+        require(msg.value == cyclePayment, "Wrong amount");
+        require(l.paymentsMade < l.totalCycles, "All payments made");
+
+        uint256 toBacker = cyclePayment / 2;
+        _sendEth(l.backer, toBacker);
+
+        l.paymentsMade++;
+        l.nextPaymentDue += paymentCycle;
+        emit NftLoanPayment(loanId, l.paymentsMade);
+    }
+
+    /// @notice Repay loan; 50% of remaining interest + fee to backer; NFT and DEX returned.
+    function terminateNftLoan(uint256 loanId) external payable nonReentrant {
+        NftLoan storage l = nftLoans[loanId];
+        require(l.funded && l.active, "Inactive");
+        require(msg.sender == l.borrower, "Not borrower");
+
+        uint256 paidInterest = (l.totalInterest / l.totalCycles) * l.paymentsMade;
+        uint256 remainingInterest = l.totalInterest - paidInterest;
+        uint256 totalDue = l.amount + remainingInterest + terminationFee;
+        require(msg.value == totalDue, "Incorrect repayment");
+
+        uint256 backerShare = (remainingInterest + terminationFee) / 2;
+        _sendEth(l.backer, backerShare);
+
+        address borrower = l.borrower;
+        address backer = l.backer;
+        uint256 tokenId = l.tokenId;
+        uint256 dexBacking = l.dexBacking;
+
+        l.active = false;
+        delete nftLoans[loanId];
+
+        _releaseNft(tokenId, borrower);
+        IERC20(address(dexToken)).safeTransfer(backer, dexBacking);
+
+        emit NftLoanFinished(loanId, borrower);
+    }
+
+    /// @notice Cancel unfunded loan request; NFT returned to borrower.
+    function cancelNftLoanRequest(uint256 loanId) external nonReentrant {
+        NftLoan storage l = nftLoans[loanId];
+        require(!l.funded, "Already funded");
+        require(msg.sender == l.borrower, "Not borrower");
+
+        uint256 tokenId = l.tokenId;
+        delete nftLoans[loanId];
+
+        _releaseNft(tokenId, msg.sender);
+        emit NftLoanCancelled(loanId);
+    }
+
+    /// @notice Liquidate NFT loan after deadline.
+    function checkNftLoan(uint256 loanId) external {
+        NftLoan storage l = nftLoans[loanId];
+        require(l.funded && l.active, "Inactive");
+        if (block.timestamp > l.deadline) {
+            _liquidateNftLoan(loanId);
+        }
+    }
+
+    function getNftLoan(uint256 loanId) external view returns (NftLoan memory) {
+        return nftLoans[loanId];
+    }
+
+    function requiredDexBacking(uint256 loanId) external view returns (uint256) {
+        NftLoan storage l = nftLoans[loanId];
+        require(l.borrower != address(0) && !l.funded, "Not pending");
+        return l.amount / dexToken.dexSwapRate();
+    }
+
     function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
     }
@@ -405,6 +588,24 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
 
         IERC20(address(dexToken)).safeTransfer(owner(), collateral);
         emit DexLoanLiquidated(loanId, borrower);
+    }
+
+    function _liquidateNftLoan(uint256 loanId) internal {
+        NftLoan storage l = nftLoans[loanId];
+        if (!l.active) return;
+
+        address borrower = l.borrower;
+        address backer = l.backer;
+        uint256 tokenId = l.tokenId;
+        uint256 dexBacking = l.dexBacking;
+
+        l.active = false;
+        delete nftLoans[loanId];
+
+        _releaseNft(tokenId, backer);
+        IERC20(address(dexToken)).safeTransfer(backer, dexBacking);
+
+        emit NftLoanLiquidated(loanId, borrower, backer);
     }
 
     receive() external payable {}
