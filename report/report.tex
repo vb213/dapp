@@ -81,7 +81,7 @@ The system is split between three on-chain smart contracts (Solidity 0.8.28) and
 \draw[arrow] (mm) -- (front);
 \draw[arrow] (front) -- (mm);
 \draw[arrow] (front) -- (srv);
-\draw[arrow] (mm.south) to[bend right=20] (hub.north);
+\draw[arrow] (mm.west) .. controls +(-2.2cm,-0.4cm) and +(-2.2cm,0.4cm) .. (hub.west);
 \draw[arrow] (hub) -- (dex);
 \draw[arrow] (hub) -- (nft);
 
@@ -113,10 +113,6 @@ PawningHub exposes \texttt{onlyOwner} setters for the payment cycle, interest pe
 
 \section{Security and Design Choices}
 
-All money handling lives in the smart contracts. Every external function that moves value uses OpenZeppelin's \texttt{ReentrancyGuard}, \texttt{SafeERC20} wrappers and explicit access control through \texttt{Ownable}. State updates always precede external calls (Checks-Effects-Interactions). Liquidations are deterministic so no off-chain oracle is required. The metadata server only serves and persists JSON; an outage or corruption there never affects on-chain balances. The frontend uses MetaMask for signing and verifies the network (chain ID 31337) before any transaction, recreating the provider when the chain changes to avoid network-mismatch errors.
-
-\section{Running and Testing}
-
-A \texttt{README.md} and a deploy script automate the setup. Four terminals are required: the Hardhat node, the deployment script (which seeds liquidity and copies the ABIs to the frontend), the metadata server and the static frontend served on port 8080. The deployment also transfers ownership of \texttt{DexToken} to \texttt{PawningHub} so requirement~6 can be enforced from a single contract. The contract suite is covered by 27 Hardhat tests organised by feature (\texttt{dex}, \texttt{nft}, \texttt{hub-dex-loan}, \texttt{hub-market}, \texttt{hub-nft-loan}, \texttt{hub-admin}); all of them pass. The full system runs locally on Hardhat; deploying to a public testnet only requires changing the network configuration.
+All money handling lives in the smart contracts. Every external function that moves value uses OpenZeppelin's \texttt{ReentrancyGuard}, \texttt{SafeERC20} wrappers and explicit access control through \texttt{Ownable}. State updates always precede external calls (Checks-Effects-Interactions). Liquidations are deterministic so no off-chain oracle is required. The metadata server only serves and persists JSON; an outage or corruption there never affects on-chain balances. The frontend uses MetaMask for signing and verifies the network (chain ID 31337) before any transaction, recreating the provider when the chain changes to avoid network-mismatch errors. Setup and execution instructions are provided in the project \texttt{README.md}; the contract logic is also covered by 27 Hardhat tests that all pass.
 
 \end{document}
