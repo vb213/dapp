@@ -5,7 +5,7 @@
 
 ## Prerequisites
 
-- **Node.js v22.13+** (required by Hardhat 3 — Node 18 will not work)
+- **Node.js v22.13+** (required by Hardhat 3 — Node 18 will not work, Node 24 will also not work)
 - npm
 - [MetaMask](https://metamask.io/) browser extension
 - A Chromium-based browser or Firefox (for the extension)
@@ -54,15 +54,15 @@ chmod +x setup.sh
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run compile` | Compile Solidity contracts |
-| `npm test` | Run Hardhat tests (27 tests) |
-| `npm run node` | Start local blockchain — **keep running** (terminal 1) |
-| `npm run deploy` | Deploy contracts to localhost → writes `frontend/addresses.json` |
-| `npm run server` | NFT metadata server on port 3001 |
-| `npm run frontend` | Web UI on http://localhost:8080 |
-| `npm run copy-abis` | Refresh `frontend/js/abis.json` after compile |
+| Command             | Description                                                      |
+| ------------------- | ---------------------------------------------------------------- |
+| `npm run compile`   | Compile Solidity contracts                                       |
+| `npm test`          | Run Hardhat tests (27 tests)                                     |
+| `npm run node`      | Start local blockchain — **keep running** (terminal 1)           |
+| `npm run deploy`    | Deploy contracts to localhost → writes `frontend/addresses.json` |
+| `npm run server`    | NFT metadata server on port 3001                                 |
+| `npm run frontend`  | Web UI on http://localhost:8080                                  |
+| `npm run copy-abis` | Refresh `frontend/js/abis.json` after compile                    |
 
 ---
 
@@ -70,12 +70,12 @@ chmod +x setup.sh
 
 All commands from `PROJECT3/dapp` after `nvm use`.
 
-| Terminal | Command | Notes |
-|----------|---------|--------|
-| **1** | `npm run node` | Leave open. RPC: `http://127.0.0.1:8545` |
-| **2** | `npm run deploy` | Run once after terminal 1 is up. Re-run if you restart terminal 1 |
-| **3** | `npm run server` | Required for NFT mint metadata |
-| **4** | `npm run frontend` | Open http://localhost:8080 (do not use `file://`) |
+| Terminal | Command            | Notes                                                             |
+| -------- | ------------------ | ----------------------------------------------------------------- |
+| **1**    | `npm run node`     | Leave open. RPC: `http://127.0.0.1:8545`                          |
+| **2**    | `npm run deploy`   | Run once after terminal 1 is up. Re-run if you restart terminal 1 |
+| **3**    | `npm run server`   | Required for NFT mint metadata                                    |
+| **4**    | `npm run frontend` | Open http://localhost:8080 (do not use `file://`)                 |
 
 **Automated tests** (no MetaMask needed):
 
@@ -124,11 +124,11 @@ Private Key: 0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
 
 After import, the address **must** match (e.g. `0x70997970...79c8`). If you see a different address (e.g. `0x1c8A7...`), you pasted the wrong key.
 
-| Account | Role | Typical use |
-|---------|------|-------------|
-| #0 | Deployer / hub `owner` | Admin tab, deploy |
-| #1 | Alice | Borrower, seller, DEX tests |
-| #2 | Bob | Buyer, auction bidder, NFT loan backer |
+| Account | Role                   | Typical use                            |
+| ------- | ---------------------- | -------------------------------------- |
+| #0      | Deployer / hub `owner` | Admin tab, deploy                      |
+| #1      | Alice                  | Borrower, seller, DEX tests            |
+| #2      | Bob                    | Buyer, auction bidder, NFT loan backer |
 
 ### Step 2 — Add the Hardhat Local network in MetaMask
 
@@ -136,12 +136,12 @@ After import, the address **must** match (e.g. `0x70997970...79c8`). If you see 
 2. **Add a custom network** / **Add network manually**.
 3. Enter:
 
-| Field | Value |
-|-------|--------|
-| Network name | `Hardhat Local` |
-| RPC URL | `http://127.0.0.1:8545` |
-| Chain ID | `31337` |
-| Currency symbol | `ETH` |
+| Field           | Value                   |
+| --------------- | ----------------------- |
+| Network name    | `Hardhat Local`         |
+| RPC URL         | `http://127.0.0.1:8545` |
+| Chain ID        | `31337`                 |
+| Currency symbol | `ETH`                   |
 
 4. Save and **select Hardhat Local**.
 
@@ -193,16 +193,16 @@ If you see `ETH: 0.0`, you are on the wrong account or wrong network.
 
 ## MetaMask troubleshooting
 
-| Symptom | Cause | Fix |
-|---------|--------|-----|
-| `Insufficient funds` | Personal wallet with 0 ETH on chain 31337 | Import Account #1 from `npm run node` output |
-| `DEX balance: -` and no `Connected` | Wrong network or node not running | Select Hardhat Local; start `npm run node` |
-| `Wrong network: chain 1, need 31337` | On Ethereum Mainnet | Switch to Hardhat Local before Connect |
-| `underlying network changed` | Network switched mid-connect | Select Hardhat Local first, refresh page, Connect again |
-| Imported account shows `$0` but no ETH | Wrong private key | Re-import; address must match terminal (e.g. `0x7099...`) |
-| Transactions fail after restart | New chain state, old `addresses.json` | `npm run deploy` again, refresh dapp |
-| `Import tokens` / `Add funds` | Wrong MetaMask menu | Use **Import account** + private key only |
-| MetaMask HTTP warning | Local dev over http://localhost | Safe to confirm for local testing |
+| Symptom                                | Cause                                     | Fix                                                       |
+| -------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |
+| `Insufficient funds`                   | Personal wallet with 0 ETH on chain 31337 | Import Account #1 from `npm run node` output              |
+| `DEX balance: -` and no `Connected`    | Wrong network or node not running         | Select Hardhat Local; start `npm run node`                |
+| `Wrong network: chain 1, need 31337`   | On Ethereum Mainnet                       | Switch to Hardhat Local before Connect                    |
+| `underlying network changed`           | Network switched mid-connect              | Select Hardhat Local first, refresh page, Connect again   |
+| Imported account shows `$0` but no ETH | Wrong private key                         | Re-import; address must match terminal (e.g. `0x7099...`) |
+| Transactions fail after restart        | New chain state, old `addresses.json`     | `npm run deploy` again, refresh dapp                      |
+| `Import tokens` / `Add funds`          | Wrong MetaMask menu                       | Use **Import account** + private key only                 |
+| MetaMask HTTP warning                  | Local dev over http://localhost           | Safe to confirm for local testing                         |
 
 ---
 
@@ -255,10 +255,10 @@ Use **Account #1** unless noted. Default swap rate: **1 DEX = 1 gwei**.
 
 ## Metadata server API
 
-| Method | Route | Body |
-|--------|-------|------|
-| `POST` | `/nft` | `{ "tokenId": "0", "name": "...", "description": "...", "imageUrl": "..." }` |
-| `GET` | `/nft/:id` | — |
+| Method | Route      | Body                                                                         |
+| ------ | ---------- | ---------------------------------------------------------------------------- |
+| `POST` | `/nft`     | `{ "tokenId": "0", "name": "...", "description": "...", "imageUrl": "..." }` |
+| `GET`  | `/nft/:id` | —                                                                            |
 
 The frontend posts metadata after mint; on-chain `tokenURI` points to `http://localhost:3001/nft/{id}`.
 
