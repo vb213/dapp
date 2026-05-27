@@ -483,7 +483,7 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         require(requiredDex > 0, "Invalid DEX amount");
 
         IERC20(address(dexToken)).safeTransferFrom(msg.sender, address(this), requiredDex);
-        require(address(this).balance >= l.amount, "No liquidity");
+        require(address(this).balance >= l.amount, "Hub has no liquidity");
 
         l.backer = msg.sender;
         l.dexBacking = requiredDex;
@@ -545,6 +545,25 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
 
         _releaseNft(tokenId, borrower);
         IERC20(address(dexToken)).safeTransfer(backer, dexBacking);
+
+        emit NftLoanFinished(loanId, borrower);
+    }
+
+    /// @notice Backer can check if the loan already expired, and force it to
+    // transfer the nft to him
+    function checkNftLoanBacker(uint256 loanId) external nonReentrant {
+        NftLoan storage l = nftLoans[loanId];
+        require(block.timestamp > l.deadline, "Not expired yet");
+
+        require(l.funded && l.active, "Inactive");
+        require(msg.sender == l.backer, "Not backer");
+        uint256 tokenId = l.tokenId;
+        address backer = l.backer;
+        address borrower = l.borrower;
+        _releaseNft(tokenId, backer);
+
+        l.active = false;
+        delete nftLoans[loanId];
 
         emit NftLoanFinished(loanId, borrower);
     }

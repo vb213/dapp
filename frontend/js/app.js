@@ -554,6 +554,12 @@ document.getElementById("btnTerminateNft").onclick = async () => {
   await waitTx(await hub.terminateNftLoan(id, { value: total }));
 };
 
+document.getElementById("btnCheckNftLoan").onclick = async () => {
+  const id = document.getElementById("nftLoanId").value;
+  const loan = await hub.getNftLoan(id);
+  await waitTx(await hub.checkNftLoanBacker(id));
+};
+
 document.getElementById("btnCancelNftRequest").onclick = async () => {
   const id = document.getElementById("nftLoanId").value;
   await waitTx(await hub.cancelNftLoanRequest(id));
@@ -931,3 +937,56 @@ document.getElementById("btnConnect").onclick = connectWallet;
 
 attachIntFormatters();
 loadConfig().catch((e) => log("Load error: " + e.message));
+
+// console helper functions
+async function listAllNfts() {
+  const total = Number(await nft.totalMinted());
+  console.log(`Total minted: ${total} (some may be burned)`);
+
+  const rows = [];
+  for (let id = 0; id < total; id++) {
+    try {
+      const owner = await nft.ownerOf(id);
+      const uri = await nft.tokenURI(id);
+      const value = (await nft.tokenValue(id)).toString();
+
+      let name = "(no metadata)";
+      try {
+        const res = await fetch(uri);
+        if (res.ok) {
+          const meta = await res.json();
+          name = meta.name || "(no name)";
+        }
+      } catch (_) {}
+
+      rows.push({ id, owner, name, valueWei: value, uri });
+    } catch (e) {
+      rows.push({ id, status: "BURNED" });
+    }
+  }
+
+  console.table(rows);
+  return rows;
+}
+
+async function showAllBalances() {
+  const accounts = {
+    "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266": "#0 admin",
+    "0x70997970c51812dc3a010c7d01b50e0d17dc79c8": "#1 Alice",
+    "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc": "#2 Bob",
+    [addresses.pawningHub.toLowerCase()]: "Hub treasury",
+    [addresses.dexToken.toLowerCase()]: "DexToken pool",
+  };
+  provider = freshProvider();
+  const rows = [];
+  for (const [addr, label] of Object.entries(accounts)) {
+    const eth = await provider.getBalance(addr);
+    const dexBal = await dex.balanceOf(addr);
+    rows.push({
+      label,
+      ETH: ethers.utils.formatEther(eth),
+      DEX: dexBal.toString(),
+    });
+  }
+  console.table(rows);
+}
