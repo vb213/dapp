@@ -314,11 +314,13 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
 
     /// @notice Buy a fixed-price listing. Pay with ETH (msg.value) or DEX (approve hub first).
     function buyFixed(uint256 listingId) external payable nonReentrant {
+        uint feePercentage = 5;
+
         Listing storage listing = listings[listingId];
         require(listing.active, "Not active");
         require(listing.saleType == SaleType.FIXED, "Not fixed price");
 
-        _collectPayment(listing.seller, listing.currency, listing.price);
+        _collectPayment(listing.seller, listing.currency, listing.price, feePercentage);
         listing.active = false;
 
         _releaseNft(listing.tokenId, msg.sender);
@@ -613,31 +615,66 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
     }
 
     /// @dev Seller receives the listing currency; buyer may pay with ETH or DEX.
-    function _collectPayment(address seller, Currency currency, uint256 price) internal {
-        uint256 swapRate = dexToken.dexSwapRate();
+    /// @dev Seller receives 95%, contract owner receives 5%
+function _collectPayment(address seller, Currency currency, uint256 price, uint feePercentage) internal {
+    uint256 swapRate = dexToken.dexSwapRate();
+    require(feePercentage >= 0);
+    require(feePercentage <=100);
+    uint256 fee = (price * feePercentage) / 100;
+    uint256 sellerAmount = price - fee;
 
-        if (currency == Currency.ETH) {
-            if (msg.value > 0) {
-                require(msg.value == price, "Wrong ETH amount");
-                _sendEth(seller, price);
-            } else {
-                uint256 dexRequired = price / swapRate;
-                require(dexRequired * swapRate == price, "DEX amount imprecise");
-                IERC20(address(dexToken)).safeTransferFrom(msg.sender, address(this), dexRequired);
-                dexToken.sellDex(dexRequired);
-                _sendEth(seller, price);
-            }
+    if (currency == Currency.ETH) {
+
+        if (msg.value > 0) {
+            require(msg.value == price, "Wrong ETH amount");
+
+            _sendEth(seller, sellerAmount);
+            _sendEth(owner(), fee);
+
         } else {
-            if (msg.value > 0) {
-                uint256 ethRequired = price * swapRate;
-                require(msg.value == ethRequired, "Wrong ETH amount");
-                dexToken.buyDex{value: ethRequired}();
-                IERC20(address(dexToken)).safeTransfer(seller, price);
-            } else {
-                IERC20(address(dexToken)).safeTransferFrom(msg.sender, seller, price);
-            }
+            uint256 dexRequired = price / swapRate;
+
+            require(dexRequired * swapRate == price, "DEX amount imprecise");
+
+            IERC20(address(dexToken)).safeTransferFrom(
+                msg.sender,
+                address(this),
+                dexRequired
+            );
+
+            dexToken.sellDex(dexRequired);
+
+            _sendEth(seller, sellerAmount);
+            _sendEth(owner(), fee);
+        }
+
+    } else {
+
+        if (msg.value > 0) {
+            uint256 ethRequired = price * swapRate;
+
+            require(msg.value == ethRequired, "Wrong ETH amount");
+
+            dexToken.buyDex{value: ethRequired}();
+
+            IERC20(address(dexToken)).safeTransfer(seller, sellerAmount);
+            IERC20(address(dexToken)).safeTransfer(owner(), fee);
+
+        } else {
+            IERC20(address(dexToken)).safeTransferFrom(
+                msg.sender,
+                seller,
+                sellerAmount
+            );
+
+            IERC20(address(dexToken)).safeTransferFrom(
+                msg.sender,
+                owner(),
+                fee
+            );
         }
     }
+}
 
     function _pullDexFromSender(address from, uint256 amount) internal returns (uint256) {
         IERC20(address(dexToken)).safeTransferFrom(from, address(this), amount);

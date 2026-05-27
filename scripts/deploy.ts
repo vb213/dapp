@@ -51,7 +51,7 @@ async function main() {
   for (const target of [dexAddress, hubAddress]) {
     const seedTx = await deployer.sendTransaction({
       to: target,
-      value: ethers.parseEther("10000"),
+      value: ethers.parseEther("2500"),
     });
     await seedTx.wait();
   }
