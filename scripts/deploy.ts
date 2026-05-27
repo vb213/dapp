@@ -18,7 +18,11 @@ async function main() {
   const [deployer] = await ethers.getSigners();
 
   console.log("Deployer:", deployer.address);
-  console.log("Balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
+  console.log(
+    "Balance:",
+    ethers.formatEther(await ethers.provider.getBalance(deployer.address)),
+    "ETH",
+  );
 
   const dexToken = await ethers.deployContract("DexToken", [DEX_SWAP_RATE]);
   await dexToken.waitForDeployment();
@@ -47,7 +51,7 @@ async function main() {
   for (const target of [dexAddress, hubAddress]) {
     const seedTx = await deployer.sendTransaction({
       to: target,
-      value: ethers.parseEther("100"),
+      value: ethers.parseEther("10000"),
     });
     await seedTx.wait();
   }
