@@ -901,7 +901,6 @@ document.getElementById("btnWithdrawDex").onclick = async () => {
 };
 
 // --- List refresh buttons ---
-document.getElementById("btnRefreshNftList").onclick = refreshNftList;
 document.getElementById("btnRefreshMarket").onclick = refreshMarketList;
 document.getElementById("btnRefreshAuctions").onclick = refreshAuctionList;
 document.getElementById("btnRefreshGlobal").onclick = refreshAccountsAndNfts;
