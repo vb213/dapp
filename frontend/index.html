@@ -54,7 +54,7 @@
       <button class="action" id="btnDexPayment">Pay interest cycle</button>
       <button class="action" id="btnTerminateDex">Terminate loan</button>
       <button class="action" id="btnRefreshDexLoan">Refresh loan info</button>
-      <pre id="dexLoanInfo"></pre>
+      <div id="dexLoanInfo"></div>
     </section>
 
     <section id="nft">
@@ -85,14 +85,6 @@
           placeholder="e.g. 0"
       /></label>
       <button class="action" id="btnBurnNft">Burn NFT</button>
-
-      <h3 class="list-title">All NFTs</h3>
-      <button class="action secondary" id="btnRefreshNftList">
-        Refresh NFT list
-      </button>
-      <div id="nftListContainer" class="list-container">
-        <em>Click Refresh to load.</em>
-      </div>
     </section>
 
     <section id="market">
@@ -114,7 +106,7 @@
       <label
         >Currency
         <select id="listCurrency">
-          <option value="0">ETH (Wei)</option>
+          <option value="0">ETH</option>
           <option value="1">DEX</option>
         </select>
       </label>
@@ -165,7 +157,7 @@
       <label
         >Currency
         <select id="aucCurrency">
-          <option value="0">ETH (Wei)</option>
+          <option value="0">ETH</option>
           <option value="1">DEX</option>
         </select>
       </label>
@@ -214,7 +206,10 @@
       <button class="action" id="btnCancelNftRequest">
         Cancel request (borrower)
       </button>
-      <pre id="nftLoanInfo"></pre>
+      <button class="action" id="btnRefreshNftLoans">Refresh NFT loans</button>
+      <div id="nftLoansPanel" class="list-container">
+        <em>Click "Refresh NFT loans" to load NFT loans and requests.</em>
+      </div>
     </section>
 
     <section id="admin">
@@ -258,6 +253,20 @@
         <span id="hubDex">-</span>
       </p>
     </section>
+
+    <div id="globalPanel" class="list-container">
+      <button class="action secondary" id="btnRefreshGlobal">
+        Refresh balances & NFTs
+      </button>
+
+      <h3 class="list-title">Accounts</h3>
+      <div id="accountsContainer"><em>Connect and refresh.</em></div>
+
+      <h3 class="list-title">All NFTs</h3>
+      <div id="nftListContainer" class="list-container">
+        <em>Click Refresh to load.</em>
+      </div>
+    </div>
 
     <h3>Transaction log</h3>
     <pre id="log"></pre>

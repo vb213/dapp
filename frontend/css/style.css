@@ -1,4 +1,6 @@
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 body {
   font-family: system-ui, sans-serif;
   max-width: 900px;
@@ -7,9 +9,21 @@ body {
   background: #0f1419;
   color: #e7e9ea;
 }
-header { border-bottom: 1px solid #38444d; padding-bottom: 1rem; margin-bottom: 1rem; }
-h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
-nav { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 1rem 0; }
+header {
+  border-bottom: 1px solid #38444d;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+}
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0;
+}
 nav button {
   background: #1d9bf0;
   border: none;
@@ -18,11 +32,27 @@ nav button {
   border-radius: 6px;
   cursor: pointer;
 }
-nav button.active { background: #0c7abf; }
-section { display: none; background: #16202a; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-section.visible { display: block; }
-label { display: block; margin-top: 0.75rem; font-size: 0.9rem; color: #8b98a5; }
-input, select {
+nav button.active {
+  background: #0c7abf;
+}
+section {
+  display: none;
+  background: #16202a;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+section.visible {
+  display: block;
+}
+label {
+  display: block;
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #8b98a5;
+}
+input,
+select {
   width: 100%;
   padding: 0.5rem;
   margin-top: 0.25rem;
@@ -50,7 +80,10 @@ button.action {
   border-radius: 6px;
   white-space: pre-wrap;
 }
-.status { font-size: 0.85rem; color: #8b98a5; }
+.status {
+  font-size: 0.85rem;
+  color: #8b98a5;
+}
 
 button.action.secondary {
   background: #38444d;
@@ -76,7 +109,9 @@ button.action.secondary {
   overflow-x: auto;
 }
 
-.list-container em { color: #8b98a5; }
+.list-container em {
+  color: #8b98a5;
+}
 
 table.data-table {
   width: 100%;
@@ -98,4 +133,32 @@ table.data-table th {
   border-bottom: 2px solid #38444d;
 }
 
-table.data-table tr:hover td { background: #1a2630; }
+table.data-table tr:hover td {
+  background: #1a2630;
+}
+
+/* Loan table styling */
+table.loan-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+}
+table.loan-table th,
+table.loan-table td {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid #1f2a33;
+  white-space: nowrap;
+}
+table.loan-table th {
+  color: #1d9bf0;
+  font-weight: 600;
+  border-bottom: 2px solid #38444d;
+}
+table.loan-table tr:hover td {
+  background: #1a2630;
+}
+.loan-table tr.inactive td {
+  opacity: 0.5;
+  color: #7a8084;
+}

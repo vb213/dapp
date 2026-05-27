@@ -41,8 +41,10 @@ function shortAddr(addr) {
 
 /** Extract a human-friendly message from an ethers/MetaMask error. */
 function formatTxError(err) {
-  if (err?.message && err.message.startsWith("You don't own")) return err.message;
-  if (err?.message && err.message.includes("does not exist")) return err.message;
+  if (err?.message && err.message.startsWith("You don't own"))
+    return err.message;
+  if (err?.message && err.message.includes("does not exist"))
+    return err.message;
   const reason =
     err?.error?.data?.message ||
     err?.data?.message ||
@@ -155,7 +157,9 @@ async function ensureLocalNetwork() {
   let net = await p.getNetwork();
   if (net.chainId.toString() === expected) return p;
 
-  log(`Wrong network: MetaMask is on chain ${net.chainId}, need ${expected} (Hardhat local)`);
+  log(
+    `Wrong network: MetaMask is on chain ${net.chainId}, need ${expected} (Hardhat local)`,
+  );
 
   try {
     await window.ethereum.request({
@@ -166,15 +170,19 @@ async function ensureLocalNetwork() {
     if (switchErr.code === 4902) {
       await window.ethereum.request({
         method: "wallet_addEthereumChain",
-        params: [{
-          chainId: "0x7a69",
-          chainName: "Hardhat Local",
-          rpcUrls: ["http://127.0.0.1:8545"],
-          nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
-        }],
+        params: [
+          {
+            chainId: "0x7a69",
+            chainName: "Hardhat Local",
+            rpcUrls: ["http://127.0.0.1:8545"],
+            nativeCurrency: { name: "ETH", symbol: "ETH", decimals: 18 },
+          },
+        ],
       });
     } else if (switchErr.code === 4001) {
-      throw new Error("Network switch rejected. Select Hardhat Local (31337) in MetaMask.");
+      throw new Error(
+        "Network switch rejected. Select Hardhat Local (31337) in MetaMask.",
+      );
     } else {
       throw switchErr;
     }
@@ -185,7 +193,7 @@ async function ensureLocalNetwork() {
   net = await p.getNetwork();
   if (net.chainId.toString() !== expected) {
     throw new Error(
-      `Still on chain ${net.chainId}. In MetaMask choose "Hardhat Local" (31337), then click Connect again.`
+      `Still on chain ${net.chainId}. In MetaMask choose "Hardhat Local" (31337), then click Connect again.`,
     );
   }
   log("Network OK: Hardhat local (31337)");
@@ -209,11 +217,18 @@ async function connectWallet() {
     signer = provider.getSigner();
     userAddress = await signer.getAddress();
 
-    document.getElementById("walletStatus").textContent =
-      `Wallet: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)} (chain 31337)`;
+    document.getElementById(
+      "walletStatus",
+    ).textContent = `Wallet: ${userAddress.slice(0, 6)}...${userAddress.slice(
+      -4,
+    )} (chain 31337)`;
 
     dex = new ethers.Contract(addresses.dexToken, abis.DexToken, signer);
-    nft = new ethers.Contract(addresses.nftCollection, abis.NftCollection, signer);
+    nft = new ethers.Contract(
+      addresses.nftCollection,
+      abis.NftCollection,
+      signer,
+    );
     hub = new ethers.Contract(addresses.pawningHub, abis.PawningHub, signer);
 
     await refreshDexBalance();
@@ -225,12 +240,22 @@ async function connectWallet() {
     }
 
     const ethBal = await provider.getBalance(userAddress);
-    log(`Connected on chain ${addresses.chainId} — ETH: ${ethers.utils.formatEther(ethBal)}`);
+    log(
+      `Connected on chain ${
+        addresses.chainId
+      } — ETH: ${ethers.utils.formatEther(ethBal)}`,
+    );
+    try {
+      await refreshAccountsAndNfts();
+    } catch (_) {}
   } catch (e) {
     log("Connect failed: " + (e.message || e));
     console.error(e);
     document.getElementById("dexBalance").textContent = "-";
   }
+  hub.on("DebugLog", (message, value) => {
+    console.log(`Contract: ${message} = ${value}`);
+  });
 }
 
 async function refreshDexBalance() {
@@ -243,6 +268,12 @@ async function waitTx(tx) {
   log(`Tx sent: ${tx.hash}`);
   const receipt = await tx.wait();
   log(`Mined block ${receipt.blockNumber}`);
+  try {
+    if (typeof refreshAccountsAndNfts === "function")
+      await refreshAccountsAndNfts();
+  } catch (e) {
+    console.error("Global refresh failed:", e);
+  }
   return receipt;
 }
 
@@ -257,11 +288,17 @@ async function approveNft(tokenId) {
   try {
     owner = await nft.ownerOf(tokenId);
   } catch (_e) {
-    throw new Error(`NFT #${tokenId} does not exist. Check "Refresh NFT list" to see existing IDs.`);
+    throw new Error(
+      `NFT #${tokenId} does not exist. Check "Refresh NFT list" to see existing IDs.`,
+    );
   }
   const me = (await signer.getAddress()).toLowerCase();
   if (owner.toLowerCase() !== me) {
-    throw new Error(`You don't own NFT #${tokenId}. Current owner: ${shortAddr(owner)}. Switch MetaMask account or pick another token.`);
+    throw new Error(
+      `You don't own NFT #${tokenId}. Current owner: ${shortAddr(
+        owner,
+      )}. Switch MetaMask account or pick another token.`,
+    );
   }
   const tx = await nft.approve(addresses.pawningHub, tokenId);
   await waitTx(tx);
@@ -269,7 +306,9 @@ async function approveNft(tokenId) {
 
 // --- DEX ---
 document.getElementById("btnBuyDex").onclick = async () => {
-  const eth = ethers.utils.parseEther(document.getElementById("buyEthAmount").value);
+  const eth = ethers.utils.parseEther(
+    document.getElementById("buyEthAmount").value,
+  );
   await waitTx(await dex.buyDex({ value: eth }));
   await refreshDexBalance();
 };
@@ -309,14 +348,54 @@ document.getElementById("btnTerminateDex").onclick = async () => {
 };
 
 document.getElementById("btnRefreshDexLoan").onclick = async () => {
-  const id = document.getElementById("dexLoanId").value;
-  const loan = await hub.getDexLoan(id);
-  document.getElementById("dexLoanInfo").textContent = JSON.stringify(loan, null, 2);
+  if (!provider) provider = freshProvider();
+  const infoEl = document.getElementById("dexLoanInfo");
+  try {
+    const counterBn = await hub.loanCounter();
+    const count = counterBn.toNumber ? counterBn.toNumber() : Number(counterBn);
+    if (count === 0) {
+      infoEl.innerHTML = "<p>No loans</p>";
+      return;
+    }
+
+    const latestBlock = await provider.getBlock("latest");
+    const now = latestBlock.timestamp;
+
+    let html =
+      '<table class="loan-table"><thead><tr><th>Loan ID</th><th>Seconds Until Expired</th><th>Payments Made</th><th>Active</th><th>Borrower</th></tr></thead><tbody>';
+
+    for (let i = 1; i <= count; i++) {
+      try {
+        const loan = await hub.getDexLoan(i);
+        const borrower = loan.borrower;
+        const paymentsMade = loan.paymentsMade.toString
+          ? loan.paymentsMade.toString()
+          : String(loan.paymentsMade);
+        const active = loan.active;
+        const deadline = loan.deadline.toNumber
+          ? loan.deadline.toNumber()
+          : Number(loan.deadline);
+        const secondsUntilExpired = Math.max(0, deadline - now);
+
+        const rowClass = active ? "" : "inactive";
+        html += `<tr class="${rowClass}"><td>${i}</td><td>${secondsUntilExpired}</td><td>${paymentsMade}</td><td>${active}</td><td>${borrower}</td></tr>`;
+      } catch (err) {
+        html += `<tr><td>${i}</td><td colspan=4>Error</td></tr>`;
+      }
+    }
+
+    html += "</tbody></table>";
+    infoEl.innerHTML = html;
+  } catch (e) {
+    infoEl.textContent = "Error refreshing loans: " + (e.message || e);
+  }
 };
 
 // --- NFT ---
 document.getElementById("btnMintNft").onclick = async () => {
-  const valueWei = ethers.utils.parseEther(document.getElementById("nftValueEth").value);
+  const valueWei = ethers.utils.parseEther(
+    document.getElementById("nftValueEth").value,
+  );
   const before = await nft.totalMinted();
   const uri = `${METADATA_BASE}/nft/${before}`;
 
@@ -347,19 +426,30 @@ document.getElementById("btnListFixed").onclick = async () => {
   const tokenId = document.getElementById("listTokenId").value;
   await approveNft(tokenId);
   const currency = Number(document.getElementById("listCurrency").value);
-  const price = priceToOnChain(document.getElementById("listPrice").value, currency);
+  const price = priceToOnChain(
+    document.getElementById("listPrice").value,
+    currency,
+  );
   const tx = await hub.listFixed(tokenId, price, currency);
   await waitTx(tx);
-  log(`Listed token #${tokenId} for ${currency === Currency.ETH ? fmtEth(price) : fmt(price) + " DEX"}`);
+  log(
+    `Listed token #${tokenId} for ${
+      currency === Currency.ETH ? fmtEth(price) : fmt(price) + " DEX"
+    }`,
+  );
 };
 
 document.getElementById("btnBuyFixed").onclick = async () => {
   const listingId = document.getElementById("buyListingId").value;
   const listing = await hub.getListing(listingId);
   const mode = document.getElementById("buyPayMode").value;
-  const rate = ethers.BigNumber.from(addresses.dexSwapRate || (await dex.dexSwapRate()));
+  const rate = ethers.BigNumber.from(
+    addresses.dexSwapRate || (await dex.dexSwapRate()),
+  );
 
-  const cur = listing.currency.toNumber ? listing.currency.toNumber() : Number(listing.currency);
+  const cur = listing.currency.toNumber
+    ? listing.currency.toNumber()
+    : Number(listing.currency);
   if (cur === Currency.ETH) {
     if (mode === "eth") {
       await waitTx(await hub.buyFixed(listingId, { value: listing.price }));
@@ -390,18 +480,30 @@ document.getElementById("btnListAuction").onclick = async () => {
   const tokenId = document.getElementById("aucTokenId").value;
   await approveNft(tokenId);
   const currency = Number(document.getElementById("aucCurrency").value);
-  const minPrice = priceToOnChain(document.getElementById("aucMinPrice").value, currency);
+  const minPrice = priceToOnChain(
+    document.getElementById("aucMinPrice").value,
+    currency,
+  );
   const wait = document.getElementById("aucWait").value;
   const tx = await hub.listAuction(tokenId, minPrice, wait, currency);
   await waitTx(tx);
-  log(`Auction started for token #${tokenId}, min ${currency === Currency.ETH ? fmtEth(minPrice) : fmt(minPrice) + " DEX"}`);
+  log(
+    `Auction started for token #${tokenId}, min ${
+      currency === Currency.ETH ? fmtEth(minPrice) : fmt(minPrice) + " DEX"
+    }`,
+  );
 };
 
 document.getElementById("btnBid").onclick = async () => {
   const listingId = document.getElementById("aucListingId").value;
   const listing = await hub.getListing(listingId);
-  const cur = listing.currency.toNumber ? listing.currency.toNumber() : Number(listing.currency);
-  const amount = priceToOnChain(document.getElementById("aucBidAmount").value, cur);
+  const cur = listing.currency.toNumber
+    ? listing.currency.toNumber()
+    : Number(listing.currency);
+  const amount = priceToOnChain(
+    document.getElementById("aucBidAmount").value,
+    cur,
+  );
 
   if (cur === Currency.ETH) {
     await waitTx(await hub.bid(listingId, 0, { value: amount }));
@@ -420,7 +522,10 @@ document.getElementById("btnFinalize").onclick = async () => {
 document.getElementById("btnRequestNftLoan").onclick = async () => {
   const tokenId = document.getElementById("nftLoanTokenId").value;
   await approveNft(tokenId);
-  const tx = await hub.requestNftLoan(tokenId, document.getElementById("nftLoanDuration").value);
+  const tx = await hub.requestNftLoan(
+    tokenId,
+    document.getElementById("nftLoanDuration").value,
+  );
   await waitTx(tx);
 };
 
@@ -454,10 +559,101 @@ document.getElementById("btnCancelNftRequest").onclick = async () => {
   await waitTx(await hub.cancelNftLoanRequest(id));
 };
 
+// --- NFT loans: refresh panel ---
+document.getElementById("btnRefreshNftLoans").onclick = async () => {
+  if (!provider) provider = freshProvider();
+  const panel = document.getElementById("nftLoansPanel");
+  try {
+    const counterBn = await hub.nftLoanCounter();
+    const count = counterBn.toNumber ? counterBn.toNumber() : Number(counterBn);
+    const latestBlock = await provider.getBlock("latest");
+    const now = latestBlock.timestamp;
+
+    const fundedRows = [];
+    const pendingRows = [];
+
+    for (let i = 1; i <= count; i++) {
+      try {
+        const l = await hub.getNftLoan(i);
+        const borrower = l.borrower;
+        if (!borrower || borrower === ethers.constants.AddressZero) continue;
+        const tokenId = l.tokenId.toString
+          ? l.tokenId.toString()
+          : String(l.tokenId);
+        const amount = l.amount;
+        const paymentsMade = l.paymentsMade.toString
+          ? l.paymentsMade.toString()
+          : String(l.paymentsMade);
+        const backer =
+          l.backer && l.backer !== ethers.constants.AddressZero
+            ? l.backer
+            : "-";
+        const deadline = l.deadline.toNumber
+          ? l.deadline.toNumber()
+          : Number(l.deadline);
+        const secondsUntilExpired = Math.max(0, deadline - now);
+
+        if (l.funded) {
+          fundedRows.push([
+            i,
+            shortAddr(borrower),
+            shortAddr(backer),
+            fmtEth(amount),
+            tokenId,
+            paymentsMade,
+            `${secondsUntilExpired}s`,
+          ]);
+        } else {
+          pendingRows.push([i, shortAddr(borrower), tokenId, fmtEth(amount)]);
+        }
+      } catch (err) {
+        // skip errors per-entry
+      }
+    }
+
+    let html = "";
+    if (fundedRows.length > 0) {
+      html += renderTable(
+        [
+          "Loan ID",
+          "Borrower",
+          "Backer",
+          "Amount",
+          "Token ID",
+          "Payments Made",
+          "Seconds Until Expiration",
+        ],
+        fundedRows,
+      );
+    } else {
+      html += "<p>No funded NFT loans.</p>";
+    }
+
+    html += "<hr/>";
+
+    if (pendingRows.length > 0) {
+      html += renderTable(
+        ["Loan ID", "Borrower", "Token ID", "Amount"],
+        pendingRows,
+      );
+    } else {
+      html += "<p>No pending NFT loan requests.</p>";
+    }
+
+    panel.innerHTML = html;
+  } catch (e) {
+    panel.textContent = "Error refreshing NFT loans: " + (e.message || e);
+  }
+};
+
 // --- Admin ---
 async function refreshAdminBalances() {
-  document.getElementById("hubEth").textContent = fmtEth(await hub.getEthBalance());
-  document.getElementById("hubDex").textContent = fmt(await hub.getDexBalance());
+  document.getElementById("hubEth").textContent = fmtEth(
+    await hub.getEthBalance(),
+  );
+  document.getElementById("hubDex").textContent = fmt(
+    await hub.getDexBalance(),
+  );
 }
 
 // --- NFT list (global view) ---
@@ -489,12 +685,19 @@ async function refreshNftList() {
           name = meta.name || name;
         }
       } catch (_) {}
-      const ownerLabel = owner.toLowerCase() === addresses.pawningHub.toLowerCase()
-        ? "Hub (escrow)"
-        : (owner.toLowerCase() === userAddress?.toLowerCase()
+      const ownerLabel =
+        owner.toLowerCase() === addresses.pawningHub.toLowerCase()
+          ? "Hub (escrow)"
+          : owner.toLowerCase() === userAddress?.toLowerCase()
           ? `You (${shortAddr(owner)})`
-          : shortAddr(owner));
-      rows.push({ id, name, owner: ownerLabel, value: fmtEth(value), status: "active" });
+          : shortAddr(owner);
+      rows.push({
+        id,
+        name,
+        owner: ownerLabel,
+        value: fmtEth(value),
+        status: "active",
+      });
     } catch (_) {
       rows.push({ id, name: "—", owner: "—", value: "—", status: "BURNED" });
     }
@@ -502,8 +705,83 @@ async function refreshNftList() {
 
   container.innerHTML = renderTable(
     ["ID", "Name", "Owner", "Value", "Status"],
-    rows.map((r) => [r.id, r.name, r.owner, r.value, r.status])
+    rows.map((r) => [r.id, r.name, r.owner, r.value, r.status]),
   );
+}
+
+// --- Global panel: accounts + NFT list ---
+async function refreshAccountsAndNfts() {
+  const accountsEl = document.getElementById("accountsContainer");
+  const nftsEl = document.getElementById("nftListContainer");
+  accountsEl.innerHTML = "<em>Loading…</em>";
+  nftsEl.innerHTML = "<em>Loading…</em>";
+
+  if (!provider) provider = freshProvider();
+  try {
+    const ethAccounts = await provider.listAccounts();
+    if (!ethAccounts || ethAccounts.length === 0) {
+      accountsEl.innerHTML = "<em>No accounts connected</em>";
+    } else {
+      const rows = [];
+      for (const a of ethAccounts) {
+        const ethBal = await provider.getBalance(a);
+        const dexBal = await dex.balanceOf(a);
+        rows.push([shortAddr(a), fmtEth(ethBal), fmt(dexBal)]);
+      }
+      accountsEl.innerHTML = renderTable(["Account", "ETH", "DEX"], rows);
+    }
+
+    // reuse existing NFT list function but write into global container
+    const total = Number(await nft.totalMinted());
+    if (total === 0) {
+      nftsEl.innerHTML = "<em>No NFTs minted yet.</em>";
+    } else {
+      const rows = [];
+      for (let id = 0; id < total; id++) {
+        try {
+          const owner = await nft.ownerOf(id);
+          const value = await nft.tokenValue(id);
+          let name = "(no metadata)";
+          try {
+            const uri = await nft.tokenURI(id);
+            const res = await fetch(uri);
+            if (res.ok) {
+              const meta = await res.json();
+              name = meta.name || name;
+            }
+          } catch (_) {}
+          const ownerLabel =
+            owner.toLowerCase() === addresses.pawningHub.toLowerCase()
+              ? "Hub (escrow)"
+              : owner.toLowerCase() === userAddress?.toLowerCase()
+              ? `You (${shortAddr(owner)})`
+              : shortAddr(owner);
+          rows.push({
+            id,
+            name,
+            owner: ownerLabel,
+            value: fmtEth(value),
+            status: "active",
+          });
+        } catch (_) {
+          rows.push({
+            id,
+            name: "—",
+            owner: "—",
+            value: "—",
+            status: "BURNED",
+          });
+        }
+      }
+      nftsEl.innerHTML = renderTable(
+        ["ID", "Name", "Owner", "Value", "Status"],
+        rows.map((r) => [r.id, r.name, r.owner, r.value, r.status]),
+      );
+    }
+  } catch (e) {
+    accountsEl.textContent = "Error: " + (e.message || e);
+    nftsEl.textContent = "Error: " + (e.message || e);
+  }
 }
 
 // --- Listings list (Marketplace + Auctions) ---
@@ -550,7 +828,12 @@ async function refreshMarketList() {
 
   container.innerHTML = renderTable(
     ["ID", "Token", "Price", "Seller"],
-    listings.map((l) => [l.id, l.tokenId, formatListingPrice(l), shortAddr(l.seller)])
+    listings.map((l) => [
+      l.id,
+      l.tokenId,
+      formatListingPrice(l),
+      shortAddr(l.seller),
+    ]),
   );
 }
 
@@ -574,9 +857,18 @@ async function refreshAuctionList() {
     listings.map((l) => {
       const remaining = l.endTime - now;
       const endsIn = remaining > 0 ? `${remaining}s` : "ENDED";
-      const bid = l.highestBid.isZero() ? "—" : formatListingPrice({ ...l, price: l.highestBid });
-      return [l.id, l.tokenId, formatListingPrice(l), bid, endsIn, shortAddr(l.seller)];
-    })
+      const bid = l.highestBid.isZero()
+        ? "—"
+        : formatListingPrice({ ...l, price: l.highestBid });
+      return [
+        l.id,
+        l.tokenId,
+        formatListingPrice(l),
+        bid,
+        endsIn,
+        shortAddr(l.seller),
+      ];
+    }),
   );
 }
 
@@ -612,20 +904,28 @@ document.getElementById("btnWithdrawDex").onclick = async () => {
 document.getElementById("btnRefreshNftList").onclick = refreshNftList;
 document.getElementById("btnRefreshMarket").onclick = refreshMarketList;
 document.getElementById("btnRefreshAuctions").onclick = refreshAuctionList;
+document.getElementById("btnRefreshGlobal").onclick = refreshAccountsAndNfts;
 
 // --- Navigation ---
 document.getElementById("nav").onclick = (e) => {
   if (e.target.tagName !== "BUTTON") return;
-  document.querySelectorAll("#nav button").forEach((b) => b.classList.remove("active"));
+  document
+    .querySelectorAll("#nav button")
+    .forEach((b) => b.classList.remove("active"));
   e.target.classList.add("active");
-  document.querySelectorAll("section").forEach((s) => s.classList.remove("visible"));
+  document
+    .querySelectorAll("section")
+    .forEach((s) => s.classList.remove("visible"));
   document.getElementById(e.target.dataset.tab).classList.add("visible");
 
   if (!hub || !userAddress) return;
   const tab = e.target.dataset.tab;
-  if (tab === "nft") refreshNftList().catch((err) => log("List error: " + err.message));
-  if (tab === "market") refreshMarketList().catch((err) => log("List error: " + err.message));
-  if (tab === "auctions") refreshAuctionList().catch((err) => log("List error: " + err.message));
+  if (tab === "nft")
+    refreshNftList().catch((err) => log("List error: " + err.message));
+  if (tab === "market")
+    refreshMarketList().catch((err) => log("List error: " + err.message));
+  if (tab === "auctions")
+    refreshAuctionList().catch((err) => log("List error: " + err.message));
 };
 
 document.getElementById("btnConnect").onclick = connectWallet;

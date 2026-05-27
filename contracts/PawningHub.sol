@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+event DebugLog(string message, uint256 value);
 
 interface IDexToken is IERC20 {
     function dexSwapRate() external view returns (uint256);
@@ -465,6 +466,8 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
             funded: false,
             active: false
         });
+
+        emit DebugLog("Loan duration", duration);
 
         emit NftLoanRequested(loanId, msg.sender, tokenId, ethAmount);
     }
