@@ -115,4 +115,12 @@ PawningHub exposes \texttt{onlyOwner} setters for the payment cycle, interest pe
 
 All money handling lives in the smart contracts. Every external function that moves value uses OpenZeppelin's \texttt{ReentrancyGuard}, \texttt{SafeERC20} wrappers and explicit access control through \texttt{Ownable}. State updates always precede external calls (Checks-Effects-Interactions). Liquidations are deterministic so no off-chain oracle is required. The metadata server only serves and persists JSON; an outage or corruption there never affects on-chain balances. The frontend uses MetaMask for signing and verifies the network (chain ID 31337) before any transaction, recreating the provider when the chain changes to avoid network-mismatch errors. Setup and execution instructions are provided in the project \texttt{README.md}; the contract logic is also covered by 27 Hardhat tests that all pass.
 
+\section{Use of AI}
+The projects setup and core structure was done with the Help of Github Copilot Agent. 
+This includes:
+\begin{itemize}
+    \item npm and harthat setup
+    \item code: frontend, server, smart contracts
+\end{itemize}
+Refining, bug fixing and testing has been done manually.
 \end{document}
