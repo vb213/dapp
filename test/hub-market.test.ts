@@ -55,11 +55,31 @@ describe("PawningHub — NFT marketplace & auctions", function () {
     const price = ethers.parseEther("1");
     await hub.connect(seller).listFixed(tokenId, price, Currency.ETH);
 
+    const sellerEthBefore = await ethers.provider.getBalance(seller.address);
     await hub.connect(buyer).buyFixed(1n, { value: price });
 
     expect(await nft.ownerOf(tokenId)).to.equal(buyer.address);
+    const sellerEthAfter = await ethers.provider.getBalance(seller.address);
+    expect(sellerEthAfter - sellerEthBefore).to.equal(price);
     const listing = await hub.getListing(1n);
     expect(listing.active).to.equal(false);
+  });
+
+  it("sells at fixed price in ETH with DEX conversion", async function () {
+    const { seller, buyer, dex, nft, hub, tokenId } = await deployMarketFixture();
+
+    const price = ethers.parseEther("1");
+    const dexRequired = price / SWAP_RATE;
+    await hub.connect(seller).listFixed(tokenId, price, Currency.ETH);
+
+    const sellerEthBefore = await ethers.provider.getBalance(seller.address);
+    await hub.connect(buyer).buyFixed(1n);
+
+    expect(await nft.ownerOf(tokenId)).to.equal(buyer.address);
+    const sellerEthAfter = await ethers.provider.getBalance(seller.address);
+    expect(sellerEthAfter - sellerEthBefore).to.equal(price);
+    expect(await dex.balanceOf(seller.address)).to.equal(0n);
+    expect(await dex.balanceOf(buyer.address)).to.equal(ethers.parseEther("5") / SWAP_RATE - dexRequired);
   });
 
   it("sells at fixed price in DEX with ETH conversion", async function () {
@@ -69,13 +89,13 @@ describe("PawningHub — NFT marketplace & auctions", function () {
     await hub.connect(seller).listFixed(tokenId, dexPrice, Currency.DEX);
 
     const ethRequired = dexPrice * SWAP_RATE;
-    const sellerEthBefore = await ethers.provider.getBalance(seller.address);
+    const sellerDexBefore = await dex.balanceOf(seller.address);
 
     await hub.connect(buyer).buyFixed(1n, { value: ethRequired });
 
     expect(await nft.ownerOf(tokenId)).to.equal(buyer.address);
-    const sellerEthAfter = await ethers.provider.getBalance(seller.address);
-    expect(sellerEthAfter).to.be.gt(sellerEthBefore);
+    const sellerDexAfter = await dex.balanceOf(seller.address);
+    expect(sellerDexAfter - sellerDexBefore).to.equal(dexPrice);
   });
 
   it("cancels a fixed listing and returns NFT to seller", async function () {

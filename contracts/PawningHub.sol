@@ -10,6 +10,8 @@ import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
 interface IDexToken is IERC20 {
     function dexSwapRate() external view returns (uint256);
+    function buyDex() external payable;
+    function sellDex(uint256 dexAmount) external;
 }
 
 interface IDexTokenAdmin {
@@ -588,7 +590,7 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         IERC721(nftCollection).safeTransferFrom(address(this), to, tokenId);
     }
 
-    /// @dev Seller currency + buyer may pay with ETH (msg.value) or DEX (allowance).
+    /// @dev Seller receives the listing currency; buyer may pay with ETH or DEX.
     function _collectPayment(address seller, Currency currency, uint256 price) internal {
         uint256 swapRate = dexToken.dexSwapRate();
 
@@ -599,13 +601,16 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
             } else {
                 uint256 dexRequired = price / swapRate;
                 require(dexRequired * swapRate == price, "DEX amount imprecise");
-                IERC20(address(dexToken)).safeTransferFrom(msg.sender, seller, dexRequired);
+                IERC20(address(dexToken)).safeTransferFrom(msg.sender, address(this), dexRequired);
+                dexToken.sellDex(dexRequired);
+                _sendEth(seller, price);
             }
         } else {
             if (msg.value > 0) {
                 uint256 ethRequired = price * swapRate;
                 require(msg.value == ethRequired, "Wrong ETH amount");
-                _sendEth(seller, ethRequired);
+                dexToken.buyDex{value: ethRequired}();
+                IERC20(address(dexToken)).safeTransfer(seller, price);
             } else {
                 IERC20(address(dexToken)).safeTransferFrom(msg.sender, seller, price);
             }
