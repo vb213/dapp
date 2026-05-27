@@ -29,13 +29,13 @@
     <p>DEX balance: <strong id="dexBalance">-</strong></p>
     <label>ETH to buy DEX <input id="buyEthAmount" type="text" value="1" /></label>
     <button class="action" id="btnBuyDex">Buy DEX</button>
-    <label>DEX to sell <input id="sellDexAmount" type="text" value="1000000000" /></label>
+    <label>DEX to sell <input id="sellDexAmount" type="text" data-fmt-int value="1000000000" /></label>
     <button class="action" id="btnSellDex">Sell DEX</button>
   </section>
 
   <section id="dexLoans">
     <h2>ETH Loans (DEX Collateral)</h2>
-    <label>DEX collateral <input id="loanDexAmount" type="text" value="2000000000" /></label>
+    <label>DEX collateral <input id="loanDexAmount" type="text" data-fmt-int value="2000000000" /></label>
     <label>Duration (seconds) <input id="loanDuration" type="text" value="180" /></label>
     <button class="action" id="btnLoanDex">Open loan</button>
     <label>Loan ID <input id="dexLoanId" type="text" value="1" /></label>
@@ -52,14 +52,18 @@
     <label>Image URL <input id="nftImage" type="text" value="https://via.placeholder.com/200" /></label>
     <label>Value (ETH) for loans <input id="nftValueEth" type="text" value="2" /></label>
     <button class="action" id="btnMintNft">Mint NFT</button>
-    <label>Token ID to burn <input id="burnTokenId" type="text" value="0" /></label>
+    <label>Token ID to burn (number: 0, 1, 2…) <input id="burnTokenId" type="number" min="0" step="1" value="0" placeholder="e.g. 0" /></label>
     <button class="action" id="btnBurnNft">Burn NFT</button>
+
+    <h3 class="list-title">All NFTs</h3>
+    <button class="action secondary" id="btnRefreshNftList">Refresh NFT list</button>
+    <div id="nftListContainer" class="list-container"><em>Click Refresh to load.</em></div>
   </section>
 
   <section id="market">
     <h2>Marketplace (Fixed Price)</h2>
-    <label>Token ID <input id="listTokenId" type="text" value="0" /></label>
-    <label>Price <input id="listPrice" type="text" value="1000000000" /></label>
+    <label>Token ID (number from the "All NFTs" list, not your address) <input id="listTokenId" type="number" min="0" step="1" value="0" placeholder="e.g. 0" /></label>
+    <label>Price (ETH if currency = ETH, raw DEX units if DEX) <input id="listPrice" type="text" value="1" /></label>
     <label>Currency
       <select id="listCurrency"><option value="0">ETH</option><option value="1">DEX</option></select>
     </label>
@@ -70,26 +74,34 @@
     </label>
     <button class="action" id="btnBuyFixed">Buy</button>
     <button class="action" id="btnCancelListing">Cancel listing (seller)</button>
+
+    <h3 class="list-title">Active fixed-price listings</h3>
+    <button class="action secondary" id="btnRefreshMarket">Refresh listings</button>
+    <div id="marketListContainer" class="list-container"><em>Click Refresh to load.</em></div>
   </section>
 
   <section id="auctions">
     <h2>NFT Auctions</h2>
-    <label>Token ID <input id="aucTokenId" type="text" value="0" /></label>
-    <label>Min price <input id="aucMinPrice" type="text" value="500000000" /></label>
+    <label>Token ID (number from the "All NFTs" list) <input id="aucTokenId" type="number" min="0" step="1" value="0" placeholder="e.g. 0" /></label>
+    <label>Min price (ETH if currency = ETH, raw DEX units if DEX) <input id="aucMinPrice" type="text" value="0.5" /></label>
     <label>Max wait (seconds) <input id="aucWait" type="text" value="120" /></label>
     <label>Currency
       <select id="aucCurrency"><option value="0">ETH</option><option value="1">DEX</option></select>
     </label>
     <button class="action" id="btnListAuction">Start auction</button>
     <label>Listing ID <input id="aucListingId" type="text" value="1" /></label>
-    <label>Bid amount (ETH in field for ETH auctions; DEX amount for DEX auctions) <input id="aucBidAmount" type="text" value="600000000" /></label>
+    <label>Bid amount (ETH if auction in ETH, raw DEX units if DEX) <input id="aucBidAmount" type="text" value="0.6" /></label>
     <button class="action" id="btnBid">Place bid</button>
     <button class="action" id="btnFinalize">Finalize auction</button>
+
+    <h3 class="list-title">Active auctions</h3>
+    <button class="action secondary" id="btnRefreshAuctions">Refresh auctions</button>
+    <div id="auctionListContainer" class="list-container"><em>Click Refresh to load.</em></div>
   </section>
 
   <section id="nftLoans">
     <h2>NFT Loans (DEX Backer)</h2>
-    <label>Token ID <input id="nftLoanTokenId" type="text" value="0" /></label>
+    <label>Token ID (number from the "All NFTs" list) <input id="nftLoanTokenId" type="number" min="0" step="1" value="0" placeholder="e.g. 0" /></label>
     <label>Duration (seconds) <input id="nftLoanDuration" type="text" value="180" /></label>
     <button class="action" id="btnRequestNftLoan">Request loan (borrower)</button>
     <label>Loan ID <input id="nftLoanId" type="text" value="1" /></label>
@@ -102,15 +114,15 @@
 
   <section id="admin">
     <h2>Administrator Console</h2>
-    <label>Payment cycle (s) <input id="admCycle" type="text" value="60" /></label>
-    <label>Interest % <input id="admInterest" type="text" value="10" /></label>
-    <label>Termination fee (wei) <input id="admFee" type="text" value="1000000000000000" /></label>
-    <label>Max loan duration (s) <input id="admMaxDur" type="text" value="1800" /></label>
-    <label>DEX swap rate (wei per DEX unit) <input id="admRate" type="text" value="1000000000" /></label>
+    <label>Payment cycle (s) <input id="admCycle" type="text" data-fmt-int value="60" /></label>
+    <label>Interest % <input id="admInterest" type="text" data-fmt-int value="10" /></label>
+    <label>Termination fee (wei) <input id="admFee" type="text" data-fmt-int value="1000000000000000" /></label>
+    <label>Max loan duration (s) <input id="admMaxDur" type="text" data-fmt-int value="1800" /></label>
+    <label>DEX swap rate (wei per DEX unit) <input id="admRate" type="text" data-fmt-int value="1000000000" /></label>
     <button class="action" id="btnSetParams">Update parameters</button>
-    <label>Withdraw ETH (wei) <input id="admWithdrawEth" type="text" value="100000000000000000" /></label>
+    <label>Withdraw ETH (wei) <input id="admWithdrawEth" type="text" data-fmt-int value="100000000000000000" /></label>
     <button class="action" id="btnWithdrawEth">Withdraw ETH</button>
-    <label>Withdraw DEX <input id="admWithdrawDex" type="text" value="1000000000" /></label>
+    <label>Withdraw DEX <input id="admWithdrawDex" type="text" data-fmt-int value="1000000000" /></label>
     <button class="action" id="btnWithdrawDex">Withdraw DEX</button>
     <p>Hub ETH: <span id="hubEth">-</span> | Hub DEX: <span id="hubDex">-</span></p>
   </section>
