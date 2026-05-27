@@ -394,7 +394,6 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         Listing storage listing = listings[listingId];
         require(listing.active, "Not active");
         require(listing.saleType == SaleType.AUCTION, "Not auction");
-        require(block.timestamp >= listing.endTime, "Not ended");
 
         listing.active = false;
 
