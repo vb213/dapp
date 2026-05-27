@@ -225,7 +225,8 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
 
         (bool success, ) = msg.sender.call{value: ethAmount}("");
         require(success, "ETH transfer failed");
-
+        emit DebugLog("Loan next payment due", dexLoans[loanId].nextPaymentDue);
+        emit DebugLog("Number of cycles", cycles);
         emit DexLoanCreated(loanId, msg.sender, ethAmount, block.timestamp + duration);
     }
 
@@ -235,9 +236,11 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         require(l.active, "Inactive loan");
         require(msg.sender == l.borrower, "Not borrower");
         require(block.timestamp <= l.deadline, "Expired");
-
+        emit DebugLog("Current time", block.timestamp);
+        emit DebugLog("Next payment due", l.nextPaymentDue);
         if (block.timestamp > l.nextPaymentDue) {
             _liquidateDexLoan(loanId);
+            emit DebugLog("Payment overdue, loan liquidated", loanId);
             return;
         }
 
@@ -273,6 +276,10 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         DexLoan storage l = dexLoans[loanId];
         require(l.active, "Inactive");
         if (block.timestamp > l.deadline) {
+            _liquidateDexLoan(loanId);
+        }
+        // also liquidate if cycle is missed
+        else if (block.timestamp > l.nextPaymentDue) {
             _liquidateDexLoan(loanId);
         }
     }

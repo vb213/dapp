@@ -97,7 +97,7 @@ The system is split between three on-chain smart contracts (Solidity 0.8.28) and
 DexToken initialises a fixed pool of DEX held by the contract itself and exposes a swap rate measured in wei per DEX. The \texttt{buyDex()} function sends \texttt{msg.value / dexSwapRate} DEX to the caller and \texttt{sellDex(amount)} performs the reverse. The contract is funded with ETH during deployment so users can withdraw value when selling.
 
 \subsection{Ether Loans with DEX Collateral}
-A borrower opens a loan with \texttt{loanDex(dexAmount, duration)}. The hub escrows the collateral, applies a 50\% loan-to-value ratio and transfers ETH to the borrower. The duration is split into payment cycles; each cycle the borrower pays a fixed interest slice through \texttt{makeDexPayment}. A missed cycle automatically triggers \texttt{\_liquidateDexLoan} and the collateral is transferred to the protocol. The borrower can close the loan early using \texttt{terminateDexLoan}, which charges a fixed termination fee in addition to the remaining interest.
+A borrower opens a loan with \texttt{loanDex(dexAmount, duration)}. The hub escrows the collateral, applies a 50\% loan-to-value ratio and transfers ETH to the borrower. The duration is split into payment cycles; each cycle the borrower pays a fixed interest slice through \texttt{makeDexPayment}. A missed cycle triggers \texttt{\_liquidateDexLoan} on the next payment call and the collateral is transferred to the protocol. The borrower can close the loan early using \texttt{terminateDexLoan}, which charges a fixed termination fee in addition to the remaining interest.
 
 \subsection{NFT Marketplace}
 NftCollection lets any user mint NFTs through \texttt{mint(uri, valueInWei)} and destroy them with \texttt{burn(tokenId)}. The URI points to the metadata server. Sellers list NFTs for a fixed price using \texttt{listFixed}; buyers pay with either ETH or DEX. The hub performs the conversion using the current swap rate, so a listing priced in one currency can be paid in the other.
@@ -120,7 +120,7 @@ The projects setup and core structure was done with the Help of Github Copilot A
 This includes:
 \begin{itemize}
     \item npm and harthat setup
-    \item code: frontend, server, smart contracts
+    \item initial version of frontend, server and smart contract code.
 \end{itemize}
-Refining, bug fixing and testing has been done manually.
+Refining, bug fixing and testing has been done manually and with the help of AI.
 \end{document}

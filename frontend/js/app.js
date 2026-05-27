@@ -833,12 +833,13 @@ async function refreshMarketList() {
   }
 
   container.innerHTML = renderTable(
-    ["ID", "Token", "Price", "Seller"],
+    ["ID", "Token", "Price", "Seller", "Payment Cycles"],
     listings.map((l) => [
       l.id,
       l.tokenId,
       formatListingPrice(l),
       shortAddr(l.seller),
+      l.totalCycles || "—",
     ]),
   );
 }
