@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-event DebugLog(string message, uint256 value);
 
 interface IDexToken is IERC20 {
     function dexSwapRate() external view returns (uint256);
@@ -225,8 +224,6 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
 
         (bool success, ) = msg.sender.call{value: ethAmount}("");
         require(success, "ETH transfer failed");
-        emit DebugLog("Loan next payment due", dexLoans[loanId].nextPaymentDue);
-        emit DebugLog("Number of cycles", cycles);
         emit DexLoanCreated(loanId, msg.sender, ethAmount, block.timestamp + duration);
     }
 
@@ -236,11 +233,8 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
         require(l.active, "Inactive loan");
         require(msg.sender == l.borrower, "Not borrower");
         require(block.timestamp <= l.deadline, "Expired");
-        emit DebugLog("Current time", block.timestamp);
-        emit DebugLog("Next payment due", l.nextPaymentDue);
         if (block.timestamp > l.nextPaymentDue) {
             _liquidateDexLoan(loanId);
-            emit DebugLog("Payment overdue, loan liquidated", loanId);
             return;
         }
 
@@ -404,7 +398,7 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
             return;
         }
 
-        _paySellerFromEscrow(listing.seller, listing.currency, listing.highestBid);
+        _paySellerFromEscrow(listing.seller, listing.currency, listing.highestBid, 5);
         _releaseNft(listing.tokenId, listing.highestBidder);
 
         emit AuctionFinalized(listingId, listing.highestBidder, listing.highestBid);
@@ -474,8 +468,6 @@ contract PawningHub is Ownable, ReentrancyGuard, IERC721Receiver {
             funded: false,
             active: false
         });
-
-        emit DebugLog("Loan duration", duration);
 
         emit NftLoanRequested(loanId, msg.sender, tokenId, ethAmount);
     }
@@ -687,11 +679,23 @@ function _collectPayment(address seller, Currency currency, uint256 price, uint 
         return amount;
     }
 
-    function _paySellerFromEscrow(address seller, Currency currency, uint256 amount) internal {
+    /// @dev Split escrowed funds between seller (price - fee) and owner (fee).
+    function _paySellerFromEscrow(
+        address seller,
+        Currency currency,
+        uint256 amount,
+        uint256 feePercentage
+    ) internal {
+        require(feePercentage <= 100, "Invalid fee");
+        uint256 fee = (amount * feePercentage) / 100;
+        uint256 sellerAmount = amount - fee;
+
         if (currency == Currency.ETH) {
-            _sendEth(seller, amount);
+            _sendEth(seller, sellerAmount);
+            if (fee > 0) _sendEth(owner(), fee);
         } else {
-            IERC20(address(dexToken)).safeTransfer(seller, amount);
+            IERC20(address(dexToken)).safeTransfer(seller, sellerAmount);
+            if (fee > 0) IERC20(address(dexToken)).safeTransfer(owner(), fee);
         }
     }
 
